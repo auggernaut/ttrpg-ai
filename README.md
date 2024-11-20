@@ -48,4 +48,4 @@ Add your OpenAI API key to the `.env` file.
 
 ## Contact
 
-- X/Twitter: [@auggernaut](https://x.com/auggernaut)
+- X/Twitter: [@augustinbralley](https://x.com/augustinbralley)
