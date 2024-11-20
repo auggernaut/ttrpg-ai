@@ -4,14 +4,14 @@ Scripts and tools for generating content for [TTRPG Games](https://ttrpg-games.c
 
 ## Overview
 
-This repository contains the content generation scripts and utilities used to create and maintain resources for [ttrpg-games.com](https://ttrpg-games.com). These tools help automate the creation of game content, random generators, and other TTRPG resources.
+This repository contains the content generation scripts and utilities used to create and maintain resources for [ttrpg-games.com](https://ttrpg-games.com). These tools help automate the creation of game descriptions, categories, related games blurbs, and other TTRPG resources.
 
 ## Features
 
-- Content generation scripts
-- Random table generators
-- Data processing utilities
-- Resource compilation tools
+- Type a name of a game, it will generate a description, a list of related games, descriptions about why the games are related, which predefined categories it fits into, and a list of possible categories to add to the game.
+- Updates game if it already exists in the database
+- Option to update all game rows
+- Option to update only a single column
 
 ## Getting Started
 
