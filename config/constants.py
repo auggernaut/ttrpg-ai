@@ -10,7 +10,7 @@ GPT_MODEL = "gpt-4o-mini"
 SERVICE_ACCOUNT_FILE = 'ttrpg-games-9a5bfcb02194.json'
 
 # Initialize the client
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+openai_client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 # Move all your category lists here
 

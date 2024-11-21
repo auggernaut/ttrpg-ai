@@ -1,4 +1,4 @@
-from config.constants import client, GPT_MODEL, CATEGORIES, GENRES, THEMES, MECHANICS
+from config.constants import openai_client, GPT_MODEL, CATEGORIES, GENRES, THEMES, MECHANICS
 from utils.decorators import retry_with_backoff
 
 class OpenAIService:
@@ -18,7 +18,7 @@ class OpenAIService:
 
     Please write a similar style blurb for: {game_name}"""
 
-        response = client.chat.completions.create(
+        response = openai_client.chat.completions.create(
             model=GPT_MODEL,
             messages=[
                 {"role": "user", "content": prompt}
@@ -40,7 +40,7 @@ class OpenAIService:
     - What makes it unique
     - Target audience and complexity level"""
 
-        response = client.chat.completions.create(
+        response = openai_client.chat.completions.create(
             model=GPT_MODEL,
             messages=[
                 {"role": "user", "content": prompt}
@@ -78,7 +78,7 @@ class OpenAIService:
 
     Important: Select only the categories that truly define the game's core identity, ordered by importance."""
 
-        response = client.chat.completions.create(
+        response = openai_client.chat.completions.create(
             model=GPT_MODEL,
             messages=[
                 {"role": "user", "content": prompt}
@@ -95,7 +95,7 @@ class OpenAIService:
 
     Existing categories: {'; '.join(CATEGORIES)}"""
 
-        response = client.chat.completions.create(
+        response = openai_client.chat.completions.create(
             model=GPT_MODEL,
             messages=[
                 {"role": "user", "content": prompt}
@@ -137,7 +137,7 @@ class OpenAIService:
     Format your response as a semicolon-separated list of exactly 3 games. Example: "Game1; Game2; Game3"
     Important: Only include games from the provided list. You must return exactly 3 games."""
 
-            response = client.chat.completions.create(
+            response = openai_client.chat.completions.create(
                 model=GPT_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=1000
@@ -170,7 +170,7 @@ class OpenAIService:
     Wrap any titles in <i> tags.
     Categories for {game2_name}: {game2_categories}"""
 
-        response = client.chat.completions.create(
+        response = openai_client.chat.completions.create(
             model=GPT_MODEL,
             messages=[
                 {"role": "user", "content": prompt}

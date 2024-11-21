@@ -2,7 +2,7 @@
 from .constants import (
     GPT_MODEL,
     SERVICE_ACCOUNT_FILE,
-    client,
+    openai_client,
     GENRES,
     THEMES,
     MECHANICS,
@@ -12,7 +12,7 @@ from .constants import (
 __all__ = [
     'GPT_MODEL',
     'SERVICE_ACCOUNT_FILE',
-    'client',
+    'openai_client',
     'GENRES',
     'THEMES',
     'MECHANICS',
