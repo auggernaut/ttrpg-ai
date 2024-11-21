@@ -1,6 +1,6 @@
 # TTRPG Games Content Generator
 
-Scripts and tools for generating content for [TTRPG Games](https://ttrpg-games.com), the world's best directory of tabletop roleplaying games.
+Tools for generating content for [TTRPG Games](https://ttrpg-games.com), the world's best directory of tabletop roleplaying games.
 
 ## Overview
 
