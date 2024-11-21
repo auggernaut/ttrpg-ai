@@ -26,8 +26,8 @@ This repository contains the content generation scripts and utilities used to cr
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/ttrpg-games-content.git
-cd ttrpg-games-content
+git clone https://github.com/yourusername/ttrpg-ai.git
+cd ttrpg-ai
 ```
 
 2. Install dependencies:
@@ -36,10 +36,25 @@ cd ttrpg-games-content
 pip install -r requirements.txt
 ```
 
+3. Create a `.env` file and add your OpenAI API key:
+
+```bash
+OPENAI_API_KEY=<your-openai-api-key>
+```
+
+4. You'll need to set up a Google Cloud account and create a service account with the necessary permissions to access the Google Sheets API. Update `config/constants.py` with your service account key.
+
+5. Export the python path to the project:
+
+```bash
+export PYTHONPATH="${PYTHONPATH}:/path/to/ttrpg-ai"
+```
+
 ## Usage
 
-You'll need to set up a Google Cloud account and create a service account with the necessary permissions to access the Google Sheets API.
-Add your OpenAI API key to the `.env` file.
+```bash
+python main.py -h
+```
 
 
 ## Related Links
