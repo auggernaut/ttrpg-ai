@@ -4,7 +4,7 @@ Scripts and tools for generating content for [TTRPG Games](https://ttrpg-games.c
 
 ## Overview
 
-This repository contains the content generation scripts and utilities used to create and maintain resources for [ttrpg-games.com](https://ttrpg-games.com). These tools help automate the creation of game descriptions, categories, related games blurbs, and other TTRPG resources.
+This repository contains the content generation scripts and utilities used to create and maintain resources for [ttrpg-games.com](https://ttrpg-games.com). These tools help automate the creation of game descriptions, categories, related games blurbs, and other TTRPG resources. The database is a google sheet that is updated with the generated content. Content is generated using OpenAI's GPT-4o model.
 
 ## Features
 
@@ -26,7 +26,7 @@ This repository contains the content generation scripts and utilities used to cr
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/ttrpg-ai.git
+git clone https://github.com/auggernaut/ttrpg-ai.git
 cd ttrpg-ai
 ```
 
