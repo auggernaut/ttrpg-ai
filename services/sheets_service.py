@@ -5,7 +5,7 @@ from config.constants import SERVICE_ACCOUNT_FILE
 from utils.decorators import retry_with_backoff
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(format='%(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class SheetsService:
@@ -173,3 +173,19 @@ class SheetsService:
         """Get all games from the worksheet."""
         worksheet = cls.get_worksheet()
         return worksheet.get_all_records()
+
+    def get_notes(self, game_name: str) -> Optional[str]:
+        """Get notes for a specific game from the spreadsheet."""
+        worksheet = self.get_worksheet()
+        
+        # Find the row for the game
+        try:
+            cell = worksheet.find(game_name)
+            if cell:
+                # Assuming notes are in a specific column, e.g., column J (10)
+                notes_col = 10  # Adjust this to match your actual notes column
+                notes = worksheet.cell(cell.row, notes_col).value
+                return notes if notes else None
+        except Exception as e:
+            logger.debug(f"Could not find notes for {game_name}: {str(e)}")
+            return None

@@ -1,10 +1,10 @@
 # TTRPG Games Content Generator
 
-Tools for generating content for [TTRPG Games](https://ttrpg-games.com), the world's best directory of tabletop roleplaying games.
+Tools for generating content for [TTRPG Games](https://www.ttrpg-games.com), the world's best directory of tabletop roleplaying games.
 
 ## Overview
 
-This repository contains the content generation scripts and utilities used to create and maintain resources for [ttrpg-games.com](https://ttrpg-games.com). These tools help automate the creation of game descriptions, categories, related games blurbs, and other TTRPG resources. The database is a google sheet that is updated with the generated content. Content is generated using OpenAI's GPT-4o model.
+This repository contains the content generation scripts and utilities used to create and maintain resources for [ttrpg-games.com](https://www.ttrpg-games.com). These tools help automate the creation of game descriptions, categories, related games blurbs, and other TTRPG resources. The database is a google sheet that is updated with the generated content. Content is generated using OpenAI's GPT-4o model.
 
 ## Features
 
@@ -59,7 +59,7 @@ python main.py -h
 
 ## Related Links
 
-- Main Website: [TTRPG Games](https://ttrpg-games.com)
+- Main Website: [TTRPG Games](https://www.ttrpg-games.com)
 
 ## Contact
 

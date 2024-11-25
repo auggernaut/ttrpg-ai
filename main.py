@@ -1,13 +1,20 @@
 import argparse
 import time
 import logging
+import os
 from typing import Optional, Tuple, List, Dict, Any
 from services.openai_service import OpenAIService
 from services.sheets_service import SheetsService
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(format='%(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Only show httpx logs if DEBUG environment variable is set
+if os.getenv("DEBUG"):
+    logging.getLogger("httpx").setLevel(logging.INFO)
+else:
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
 class TTRPGBlurbWriter:
     """Main class for managing TTRPG content generation and updates."""
@@ -34,13 +41,16 @@ class TTRPGBlurbWriter:
         summary = full_text = category = potential_categories = related_data = None
         
         try:
+            # Get notes for the game from the spreadsheet
+            notes = self.sheets_service.get_notes(title)
+            
             if not column or column == 'summary':
                 logger.info("Getting TTRPG summary...")
-                summary = self.openai_service.get_ttrpg_summary(title)
+                summary = self.openai_service.get_ttrpg_summary(title, notes)
             
             if not column or column == 'full_text':
                 logger.info("Getting full text description...")
-                full_text = self.openai_service.get_ttrpg_full_text(title)
+                full_text = self.openai_service.get_ttrpg_full_text(title, notes)
             
             if not column or column == 'category':
                 logger.info("Getting category...")

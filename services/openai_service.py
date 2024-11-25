@@ -4,9 +4,11 @@ from utils.decorators import retry_with_backoff
 class OpenAIService:
     @staticmethod
     @retry_with_backoff
-    def get_ttrpg_summary(game_name):
+    def get_ttrpg_summary(game_name, notes=None):
+        notes_text = f"\nAdditional context about the game:\n{notes}" if notes else ""
+        
         prompt = f"""Write a short, engaging blurb about the tabletop roleplaying game '{game_name}'. 
-    Include its theme, key features, and what makes it unique. Keep it between 2-3 sentences. It should read more like an explanation of the game and not an advertisement.
+    Include its theme, key features, and what makes it unique. Keep it between 2-3 sentences. It should read more like an explanation of the game and not an advertisement.{notes_text}
 
     Here are some examples of the style I'm looking for:
 
@@ -29,16 +31,22 @@ class OpenAIService:
 
     @staticmethod
     @retry_with_backoff
-    def get_ttrpg_full_text(game_name):
-        prompt = f"""Write a detailed description of the tabletop roleplaying game '{game_name}' formatted in HTML using <article> and <section> blocks. Include its theme, rules overview, unique mechanics, and target audience. 
+    def get_ttrpg_full_text(game_name, notes=None):
+        notes_text = f"\nAdditional context about the game:\n{notes}" if notes else ""
+        
+        prompt = f"""Write a detailed description of the tabletop roleplaying game '{game_name}' formatted in HTML using <article> and <section> blocks. Include its theme, rules overview, unique mechanics, and target audience.{notes_text}
 
-    Important: Do not use <h1> tags. Start your sections with <h2> if headings are needed. The output should start and end with <article> tags.
+    Important:
+    - Do not use <h1> tags. Start your sections with <h2> if headings are needed
+    - The output should start and end with <article> tags
+    - Do not wrap the response in any markdown or code blocks
+    - Provide only the raw HTML content
 
     The description should cover:
     - Theme and setting
     - Core mechanics
     - What makes it unique
-    - Target audience and complexity level"""
+    - Target audience"""
 
         response = openai_client.chat.completions.create(
             model=GPT_MODEL,
@@ -47,7 +55,11 @@ class OpenAIService:
             ],
             max_tokens=1000
         )
-        return response.choices[0].message.content.strip()
+        
+        # Remove any markdown code block formatting if present
+        content = response.choices[0].message.content.strip()
+        content = content.replace('```html', '').replace('```', '')
+        return content.strip()
 
     @staticmethod
     @retry_with_backoff
