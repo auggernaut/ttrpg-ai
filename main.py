@@ -5,6 +5,7 @@ import os
 from typing import Optional, Tuple, List, Dict, Any
 from services.openai_service import OpenAIService
 from services.sheets_service import SheetsService
+from services.scraper_service import ScraperService
 
 # Set up logging
 logging.basicConfig(format='%(message)s', level=logging.INFO)
@@ -92,24 +93,77 @@ class TTRPGBlurbWriter:
             logger.error(f"Error generating content for {title}: {str(e)}")
             raise
 
-    def process_all_games(self, column: Optional[str] = None) -> None:
-        """Process all games in the spreadsheet."""
-        worksheet = self.sheets_service.get_worksheet()
-        titles = [t for t in worksheet.col_values(1)[1:] if t.strip()]
+    def generate_review_summary(self, title: str) -> Optional[str]:
+        """Generate a summary of reviews for a game."""
+        try:
+            logger.info("Scraping DriveThruRPG reviews...")
+            
+            # Get the URL from the spreadsheet
+            url = self.sheets_service.get_url(title)
+            if not url:
+                logger.warning(f"No DriveThruRPG URL found for {title}")
+                return None
+            
+            # Get reviews from DriveThruRPG
+            scraper = ScraperService()
+            
+            # Add delay before scraping to be respectful to the server
+            time.sleep(2)
+            
+            rawHtml = scraper.scrape_drivethrurpg_html(url)
+            if not rawHtml:
+                logger.warning(f"No HTML content found for {title} at {url}")
+                return None
+            
+            rawText = scraper.get_visible_text(rawHtml)
+            if not rawText:
+                logger.warning(f"No visible text found in HTML for {title} at {url}")
+                return None
+            
+            reviews = self.openai_service.extract_reviews(rawText)
+            if not reviews:
+                logger.warning(f"No reviews found for {title} at {url}")
+                return None
+            
+            logger.info(f"Found {len(reviews) if isinstance(reviews, list) else 'some'} reviews")
+            
+            # Generate summary using OpenAI
+            summary = self.openai_service.summarize_reviews(reviews)
+            logger.info("Generated review summary")
+            return summary
+            
+        except Exception as e:
+            logger.error(f"Error generating review summary for {title}: {str(e)}")
+            return None
+
+    def process_games(self, games: List[str], column: Optional[str] = None) -> None:
+        """Process one or more games from the spreadsheet.
         
-        for i, title in enumerate(titles, 1):
-            logger.info(f"\nProcessing {i}/{len(titles)}: {title}")
+        Args:
+            games: List of game titles to process
+            column: Specific column to update (if any)
+        """
+        for i, title in enumerate(games, 1):
+            logger.info(f"\nProcessing {i}/{len(games)}: {title}")
             try:
-                content = self.generate_game_content(title, column)
-                self.sheets_service.update_google_sheet(
-                    game_name=title,
-                    summary=content[0],
-                    full_text=content[1],
-                    category=content[2],
-                    potential_categories=content[3],
-                    related_data=content[4],
-                    specific_column=column
-                )
+                if column == 'reviewSummary':
+                    summary = self.generate_review_summary(title)
+                    self.sheets_service.update_google_sheet(
+                        game_name=title,
+                        review_summary=summary,
+                        specific_column=column
+                    )
+                else:
+                    content = self.generate_game_content(title, column)
+                    self.sheets_service.update_google_sheet(
+                        game_name=title,
+                        summary=content[0],
+                        full_text=content[1],
+                        category=content[2],
+                        potential_categories=content[3],
+                        related_data=content[4],
+                        specific_column=column
+                    )
                 time.sleep(1)  # Rate limiting
             except Exception as e:
                 logger.error(f"Error processing {title}: {str(e)}")
@@ -139,6 +193,7 @@ Column Descriptions:
   category            - 4-7 categories from predefined lists (genres, themes, mechanics)
   potential_categories - 2-3 suggested new categories not in the predefined lists
   related_games       - Find and describe 3 similar games from the database
+  reviewSummary        - A summary of reviews for the game
         """
     )
     
@@ -150,7 +205,7 @@ Column Descriptions:
     parser.add_argument(
         '--column', 
         '-c',
-        choices=['summary', 'full_text', 'category', 'potential_categories', 'related_games'],
+        choices=['summary', 'full_text', 'category', 'potential_categories', 'related_games', 'reviewSummary'],
         help='Specific column to update (updates all columns if not specified)'
     )
     parser.add_argument(
@@ -160,29 +215,21 @@ Column Descriptions:
     )
     
     args = parser.parse_args()
-    writer = TTRPGBlurbWriter()
 
     try:
+        writer = TTRPGBlurbWriter()
+        
         if args.update_all:
-            writer.process_all_games(args.column)
+            worksheet = writer.sheets_service.get_worksheet()
+            titles = [t for t in worksheet.col_values(1)[1:] if t.strip()]
+            writer.process_games(titles, args.column)
         else:
-            # Single game processing
             ttrpg_name = ' '.join(args.game_name) if args.game_name else input("Enter the name of the TTRPG: ").strip()
             if not ttrpg_name:
                 logger.error("Please provide a valid name.")
                 return
 
-            logger.info(f"Processing: {ttrpg_name}")
-            content = writer.generate_game_content(ttrpg_name, args.column)
-            writer.sheets_service.update_google_sheet(
-                game_name=ttrpg_name,
-                summary=content[0],
-                full_text=content[1],
-                category=content[2],
-                potential_categories=content[3],
-                related_data=content[4],
-                specific_column=args.column
-            )
+            writer.process_games([ttrpg_name], args.column)
             logger.info("Successfully uploaded the data to Google Sheet!")
             
     except Exception as e:

@@ -190,3 +190,45 @@ class OpenAIService:
             max_tokens=200
         )
         return response.choices[0].message.content.strip()
+    
+    @staticmethod
+    @retry_with_backoff
+    def extract_reviews(text_content):
+        prompt = f"""
+        Extract all user reviews from the following text:
+
+        {text_content}
+
+        Provide each review in a separate line.
+
+        Reviews:
+        """
+        response = openai_client.chat.completions.create(
+            model=GPT_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=3000,
+            temperature=0
+        )
+        reviews_text = response.choices[0].message.content
+        reviews = reviews_text.strip().split('\n')
+        return reviews
+    
+    @staticmethod
+    @retry_with_backoff
+    def summarize_reviews(reviews):
+        combined_reviews = ' '.join(reviews)
+        prompt = f"""
+        Summarize the following user reviews into a concise paragraph highlighting the main points:
+
+        {combined_reviews}
+
+        Summary:
+        """
+        response = openai_client.chat.completions.create(
+            model='gpt-4',
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=3000,
+            temperature=0.0
+        )
+        summary = response.choices[0].message.content
+        return summary.strip()

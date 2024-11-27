@@ -17,6 +17,7 @@ class SheetsService:
         'full_text': 7,    # fullText column
         'category': 9,     # Category column
         'potential_categories': 10,    # Potential Categories column
+        'reviewSummary': 5,  # Column E
         'related_games': [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]
     }
 
@@ -54,6 +55,7 @@ class SheetsService:
         full_text: Optional[str] = None,
         category: Optional[str] = None,
         potential_categories: Optional[str] = None,
+        review_summary: Optional[str] = None,
         related_data: Optional[List[Dict]] = None,
         specific_column: Optional[str] = None
     ) -> bool:
@@ -66,6 +68,7 @@ class SheetsService:
             full_text: Detailed game description
             category: Game categories
             potential_categories: Suggested new categories
+            review_summary: Review summary
             related_data: Related games information
             specific_column: Specific column to update (if any)
         
@@ -97,7 +100,7 @@ class SheetsService:
                             cls.COLUMN_MAPPING['related_games']
                         )
                     else:
-                        value = locals()[specific_column]
+                        value = review_summary if specific_column == 'reviewSummary' else locals()[specific_column]
                         if value:
                             worksheet.update_cell(
                                 row_index, 
@@ -133,7 +136,7 @@ class SheetsService:
                     '',        # url
                     '',        # imgUrl
                     page_name, # page
-                    '',        # custom_redirect
+                    '',        # reviewSummary
                     summary,   # text
                     full_text, # fullText
                     '',        # notes
@@ -189,3 +192,16 @@ class SheetsService:
         except Exception as e:
             logger.debug(f"Could not find notes for {game_name}: {str(e)}")
             return None
+
+    def get_url(self, title: str) -> Optional[str]:
+        """Get the URL for a given game title."""
+        worksheet = self.get_worksheet()
+        # Find the row with the matching title
+        try:
+            cell = worksheet.find(title)
+            if cell:
+                # Get the URL from column B in the same row
+                return worksheet.cell(cell.row, 2).value
+        except:
+            return None
+        return None
