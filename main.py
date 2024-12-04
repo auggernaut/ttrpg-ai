@@ -28,7 +28,7 @@ class TTRPGBlurbWriter:
         self, 
         title: str, 
         column: Optional[str] = None
-    ) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[List[Dict[str, Any]]]]:
+    ) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[List[Dict[str, Any]]], Optional[str]]:
         """
         Generate requested content for a game title.
         
@@ -37,9 +37,9 @@ class TTRPGBlurbWriter:
             column: Specific column to update (if any)
             
         Returns:
-            Tuple containing: summary, full_text, category, potential_categories, related_data
+            Tuple containing: summary, full_text, category, potential_categories, related_data, review_summary
         """
-        summary = full_text = category = potential_categories = related_data = None
+        summary = full_text = category = potential_categories = related_data = review_summary = None
         
         try:
             # Get notes for the game from the spreadsheet
@@ -87,7 +87,11 @@ class TTRPGBlurbWriter:
                 while len(related_data) < 3:
                     related_data.append({'title': '', 'imgUrl': '', 'page': '', 'blurb': ''})
             
-            return summary, full_text, category, potential_categories, related_data
+            if not column or column == 'reviewSummary':
+                logger.info("Getting review summary...")
+                review_summary = self.generate_review_summary(title)
+            
+            return summary, full_text, category, potential_categories, related_data, review_summary
             
         except Exception as e:
             logger.error(f"Error generating content for {title}: {str(e)}")
@@ -137,33 +141,21 @@ class TTRPGBlurbWriter:
             return None
 
     def process_games(self, games: List[str], column: Optional[str] = None) -> None:
-        """Process one or more games from the spreadsheet.
-        
-        Args:
-            games: List of game titles to process
-            column: Specific column to update (if any)
-        """
+        """Process one or more games from the spreadsheet."""
         for i, title in enumerate(games, 1):
             logger.info(f"\nProcessing {i}/{len(games)}: {title}")
             try:
-                if column == 'reviewSummary':
-                    summary = self.generate_review_summary(title)
-                    self.sheets_service.update_google_sheet(
-                        game_name=title,
-                        review_summary=summary,
-                        specific_column=column
-                    )
-                else:
-                    content = self.generate_game_content(title, column)
-                    self.sheets_service.update_google_sheet(
-                        game_name=title,
-                        summary=content[0],
-                        full_text=content[1],
-                        category=content[2],
-                        potential_categories=content[3],
-                        related_data=content[4],
-                        specific_column=column
-                    )
+                content = self.generate_game_content(title, column)
+                self.sheets_service.update_google_sheet(
+                    game_name=title,
+                    summary=content[0],
+                    full_text=content[1],
+                    category=content[2],
+                    potential_categories=content[3],
+                    related_data=content[4],
+                    review_summary=content[5],
+                    specific_column=column
+                )
                 time.sleep(1)  # Rate limiting
             except Exception as e:
                 logger.error(f"Error processing {title}: {str(e)}")
