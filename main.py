@@ -6,6 +6,7 @@ from typing import Optional, Tuple, List, Dict, Any
 from services.openai_service import OpenAIService
 from services.sheets_service import SheetsService
 from services.scraper_service import ScraperService
+from services.serper_service import SerperService
 
 # Set up logging
 logging.basicConfig(format='%(message)s', level=logging.INFO)
@@ -23,6 +24,7 @@ class TTRPGBlurbWriter:
     def __init__(self):
         self.openai_service = OpenAIService()
         self.sheets_service = SheetsService()
+        self.serper_service = SerperService()
 
     def generate_game_content(
         self, 
@@ -100,10 +102,11 @@ class TTRPGBlurbWriter:
     def generate_review_summary(self, title: str) -> Optional[str]:
         """Generate a summary of reviews for a game."""
         try:
-            logger.info("Scraping DriveThruRPG reviews...")
+            logger.info("Retrieving DriveThruRPG URL using Serper service...")
             
-            # Get the URL from the spreadsheet
-            url = self.sheets_service.get_url(title)
+            # Use Serper service to get the URL
+            url = self.serper_service.get_drivethrurpg_url(title)
+            print("DRIVE THRU RPG URL", url)
             if not url:
                 logger.warning(f"No DriveThruRPG URL found for {title}")
                 return None
