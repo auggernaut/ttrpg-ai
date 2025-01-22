@@ -62,7 +62,7 @@ class ScraperService:
             try:
                 # Find the button
                 more_reviews_button = WebDriverWait(self.driver, 10).until(
-                    EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'See More Reviews')]"))
+                    EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'View more discussions')]"))
                 )
                 # Scroll to button with offset to ensure it's in view
                 self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", more_reviews_button)
@@ -74,12 +74,12 @@ class ScraperService:
                 except:
                     self.driver.execute_script("arguments[0].click();", more_reviews_button)
                     
-                print("Clicked 'See More Reviews' button")
+                print("Clicked 'View more discussions' button")
                 time.sleep(2)
             except Exception as e:
                 print(f"Exception occurred: {type(e).__name__}")
                 print(f"Exception message: {str(e)}")
-                print("No 'See More Reviews' button found")
+                print("No 'View more discussions' button found")
                 pass
                 
             return self.driver.page_source
