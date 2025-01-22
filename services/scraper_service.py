@@ -33,7 +33,7 @@ class ScraperService:
         if self.driver:
             self.driver.quit()
 
-    def scrape_drivethrurpg_html(self, url: str) -> List[Dict[str, str]]:
+    def scrape_drivethrurpg_html(self, url: str) -> str:
         """
         Scrape reviews from a DriveThruRPG product page.
         
@@ -42,7 +42,7 @@ class ScraperService:
                 (e.g., 'https://www.drivethrurpg.com/product/...')
             
         Returns:
-            List of dictionaries containing review data
+            String containing the page HTML
         
         Raises:
             ValueError: If the URL is not a valid DriveThruRPG product URL
@@ -57,31 +57,35 @@ class ScraperService:
             # Navigate directly to the product page
             self.driver.get(url)
             
+            # Wait for the main content to load
             time.sleep(5)
             
             try:
-                # Find the button
-                more_reviews_button = WebDriverWait(self.driver, 10).until(
-                    EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'View more discussions')]"))
+                # Try to find the "View more discussions" button with a shorter timeout
+                more_reviews_button = WebDriverWait(self.driver, 3).until(
+                    EC.presence_of_element_located((By.XPATH, "//button[contains(text(), 'View more discussions')]"))
                 )
-                # Scroll to button with offset to ensure it's in view
-                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", more_reviews_button)
-                time.sleep(1)  # Give time for any animations to complete
                 
-                # Try JavaScript click if regular click fails
-                try:
-                    more_reviews_button.click()
-                except:
-                    self.driver.execute_script("arguments[0].click();", more_reviews_button)
+                # If button exists, try to click it
+                if more_reviews_button:
+                    # Scroll to button with offset to ensure it's in view
+                    self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", more_reviews_button)
+                    time.sleep(1)
                     
-                print("Clicked 'View more discussions' button")
-                time.sleep(2)
+                    try:
+                        more_reviews_button.click()
+                    except:
+                        self.driver.execute_script("arguments[0].click();", more_reviews_button)
+                        
+                    print("Clicked 'View more discussions' button")
+                    time.sleep(2)
+                    
+            except TimeoutException:
+                # This is expected for pages with few reviews
+                print("No 'View more discussions' button found (this is normal for pages with few reviews)")
             except Exception as e:
-                print(f"Exception occurred: {type(e).__name__}")
-                print(f"Exception message: {str(e)}")
-                print("No 'View more discussions' button found")
-                pass
-                
+                print(f"Non-critical error handling reviews button: {type(e).__name__} - {str(e)}")
+            
             return self.driver.page_source
         finally:
             self.close_driver()

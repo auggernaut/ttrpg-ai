@@ -30,7 +30,7 @@ class TTRPGBlurbWriter:
         self, 
         title: str, 
         column: Optional[str] = None
-    ) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[List[Dict[str, Any]]], Optional[str]]:
+    ) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[List[Dict[str, Any]]], Optional[str], Optional[str]]:
         """
         Generate requested content for a game title.
         
@@ -39,9 +39,9 @@ class TTRPGBlurbWriter:
             column: Specific column to update (if any)
             
         Returns:
-            Tuple containing: summary, full_text, category, potential_categories, related_data, review_summary
+            Tuple containing: summary, full_text, category, potential_categories, related_data, review_summary, reviews_url
         """
-        summary = full_text = category = potential_categories = related_data = review_summary = None
+        summary = full_text = category = potential_categories = related_data = review_summary = reviews_url = None
         
         try:
             # Get notes for the game from the spreadsheet
@@ -89,17 +89,17 @@ class TTRPGBlurbWriter:
                 while len(related_data) < 3:
                     related_data.append({'title': '', 'imgUrl': '', 'page': '', 'blurb': ''})
             
-            if not column or column == 'reviewSummary':
+            if not column or column in ['reviewSummary', 'reviewsUrl']:
                 logger.info("Getting review summary...")
-                review_summary = self.generate_review_summary(title)
+                review_summary, reviews_url = self.generate_review_summary(title)
             
-            return summary, full_text, category, potential_categories, related_data, review_summary
+            return summary, full_text, category, potential_categories, related_data, review_summary, reviews_url
             
         except Exception as e:
             logger.error(f"Error generating content for {title}: {str(e)}")
             raise
 
-    def generate_review_summary(self, title: str) -> Optional[str]:
+    def generate_review_summary(self, title: str) -> Tuple[Optional[str], Optional[str]]:
         """Generate a summary of reviews for a game."""
         try:
             logger.info("Retrieving DriveThruRPG URL using Serper service...")
@@ -109,7 +109,7 @@ class TTRPGBlurbWriter:
             print("DRIVE THRU RPG URL", url)
             if not url:
                 logger.warning(f"No DriveThruRPG URL found for {title}")
-                return None
+                return None, None
             
             # Get reviews from DriveThruRPG
             scraper = ScraperService()
@@ -120,28 +120,28 @@ class TTRPGBlurbWriter:
             rawHtml = scraper.scrape_drivethrurpg_html(url)
             if not rawHtml:
                 logger.warning(f"No HTML content found for {title} at {url}")
-                return None
+                return None, None
             
             rawText = scraper.get_visible_text(rawHtml)
             if not rawText:
                 logger.warning(f"No visible text found in HTML for {title} at {url}")
-                return None
+                return None, None
             
             reviews = self.openai_service.extract_reviews(rawText)
             if not reviews:
                 logger.warning(f"No reviews found for {title} at {url}")
-                return None
+                return None, None
             
             logger.info(f"Found {len(reviews) if isinstance(reviews, list) else 'some'} reviews")
             
             # Generate summary using OpenAI
             summary = self.openai_service.summarize_reviews(reviews)
             logger.info("Generated review summary")
-            return summary
+            return summary, url
             
         except Exception as e:
             logger.error(f"Error generating review summary for {title}: {str(e)}")
-            return None
+            return None, None
 
     def process_games(self, games: List[str], column: Optional[str] = None) -> None:
         """Process one or more games from the spreadsheet."""
@@ -157,6 +157,7 @@ class TTRPGBlurbWriter:
                     potential_categories=content[3],
                     related_data=content[4],
                     review_summary=content[5],
+                    reviews_url=content[6],
                     specific_column=column
                 )
                 time.sleep(1)  # Rate limiting
@@ -189,6 +190,7 @@ Column Descriptions:
   potential_categories - 2-3 suggested new categories not in the predefined lists
   related_games       - Find and describe 3 similar games from the database
   reviewSummary        - A summary of reviews for the game
+  reviewsUrl           - URL to the reviews page
         """
     )
     
@@ -200,7 +202,7 @@ Column Descriptions:
     parser.add_argument(
         '--column', 
         '-c',
-        choices=['summary', 'full_text', 'category', 'potential_categories', 'related_games', 'reviewSummary'],
+        choices=['summary', 'full_text', 'category', 'potential_categories', 'related_games', 'reviewSummary', 'reviewsUrl'],
         help='Specific column to update (updates all columns if not specified)'
     )
     parser.add_argument(

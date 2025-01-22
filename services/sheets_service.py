@@ -13,12 +13,13 @@ class SheetsService:
     
     # Column mappings for the spreadsheet
     COLUMN_MAPPING = {
-        'summary': 6,      # text column
-        'full_text': 7,    # fullText column
-        'category': 9,     # Category column
-        'potential_categories': 10,    # Potential Categories column
-        'reviewSummary': 5,  # Column E
-        'related_games': [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]
+        'reviewsUrl': 5,     # Column E
+        'reviewSummary': 6,  # Column F
+        'summary': 7,        # text column
+        'full_text': 8,      # fullText column
+        'category': 10,      # Category column
+        'potential_categories': 11,    # Potential Categories column
+        'related_games': [18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
     }
 
     @staticmethod
@@ -56,6 +57,7 @@ class SheetsService:
         category: Optional[str] = None,
         potential_categories: Optional[str] = None,
         review_summary: Optional[str] = None,
+        reviews_url: Optional[str] = None,
         related_data: Optional[List[Dict]] = None,
         specific_column: Optional[str] = None
     ) -> bool:
@@ -69,6 +71,7 @@ class SheetsService:
             category: Game categories
             potential_categories: Suggested new categories
             review_summary: Review summary
+            reviews_url: Reviews URL
             related_data: Related games information
             specific_column: Specific column to update (if any)
         
@@ -79,7 +82,6 @@ class SheetsService:
             worksheet = cls.get_worksheet()
             titles = worksheet.col_values(1)  # Column A contains titles
             
-            # Find existing row
             row_index = next(
                 (i for i, title in enumerate(titles, start=1) 
                  if title.lower() == game_name.lower()),
@@ -99,8 +101,22 @@ class SheetsService:
                             related_data, 
                             cls.COLUMN_MAPPING['related_games']
                         )
+                    elif specific_column in ['reviewSummary', 'reviewsUrl']:
+                        # Update both review-related columns together
+                        if review_summary:
+                            worksheet.update_cell(
+                                row_index,
+                                cls.COLUMN_MAPPING['reviewSummary'],
+                                review_summary
+                            )
+                        if reviews_url:
+                            worksheet.update_cell(
+                                row_index,
+                                cls.COLUMN_MAPPING['reviewsUrl'],
+                                reviews_url
+                            )
                     else:
-                        value = review_summary if specific_column == 'reviewSummary' else locals()[specific_column]
+                        value = locals()[specific_column]
                         if value:
                             worksheet.update_cell(
                                 row_index, 
@@ -113,7 +129,8 @@ class SheetsService:
                         ('summary', summary),
                         ('full_text', full_text),
                         ('category', category),
-                        ('potential_categories', potential_categories)
+                        ('potential_categories', potential_categories),
+                        ('reviewsUrl', reviews_url)
                     ]:
                         if col_var:
                             worksheet.update_cell(
@@ -132,22 +149,23 @@ class SheetsService:
                 logger.info(f"Adding new entry for {game_name}...")
                 page_name = cls._format_page_name(game_name)
                 new_row = [
-                    game_name,  # title
-                    '',        # url
-                    '',        # imgUrl
-                    page_name, # page
-                    '',        # reviewSummary
-                    summary,   # text
-                    full_text, # fullText
-                    '',        # notes
-                    category,  # Category
-                    potential_categories,  # Potential Categories
-                    '',  # Rank
-                    True,  # Hidden
-                    False,  # isFree
-                    False,  # isTopRated
-                    True,  # verified
-                    False  # premium
+                    game_name,              # title
+                    '',                     # url
+                    '',                     # imgUrl
+                    page_name,              # page
+                    reviews_url,            # reviewsUrl
+                    review_summary,         # reviewSummary
+                    summary,                # text
+                    full_text,              # fullText
+                    '',                     # notes
+                    category,               # Category
+                    potential_categories,   # Potential Categories
+                    '',                     # Rank
+                    True,                   # Hidden
+                    False,                  # isFree
+                    False,                  # isTopRated
+                    True,                   # verified
+                    False                   # premium
                 ]
                 
                 # Pad the row to match all columns

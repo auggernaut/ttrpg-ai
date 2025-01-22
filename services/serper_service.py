@@ -34,7 +34,7 @@ class SerperService:
             response.raise_for_status()
             
             data = response.json()
-            print("serper data", data)
+            # print("serper data", data)
             # Assuming the first result is the most relevant
             if data and "organic" in data and len(data["organic"]) > 0:
                 return data["organic"][0]["link"]
