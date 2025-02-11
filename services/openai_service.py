@@ -1,7 +1,13 @@
-from config.constants import openai_client, GPT_MODEL, CATEGORIES, GENRES, THEMES, MECHANICS
+from config.constants import openai_client, GPT_MODEL
 from utils.decorators import retry_with_backoff
+from services.sheets_service import SheetsService
 
 class OpenAIService:
+    def __init__(self):
+        self.sheets_service = SheetsService()
+        self.genres, self.themes, self.mechanics = self.sheets_service.categories
+        self.categories = self.genres + self.themes + self.mechanics
+
     @staticmethod
     @retry_with_backoff
     def get_ttrpg_summary(game_name, notes=None):
@@ -61,12 +67,11 @@ class OpenAIService:
         content = content.replace('```html', '').replace('```', '')
         return content.strip()
 
-    @staticmethod
     @retry_with_backoff
-    def get_ttrpg_category(game_name):
-        genres_string = '; '.join(GENRES)
-        themes_string = '; '.join(THEMES)
-        mechanics_string = '; '.join(MECHANICS)
+    def get_ttrpg_category(self, game_name):
+        genres_string = '; '.join(self.genres)
+        themes_string = '; '.join(self.themes)
+        mechanics_string = '; '.join(self.mechanics)
         
         prompt = f"""Analyze the tabletop roleplaying game '{game_name}' and select 4-7 categories total from the following lists. Choose categories that best capture the game's core essence and unique features. Provide the categories separated by a semicolon and space.
 
@@ -74,7 +79,7 @@ class OpenAIService:
     - Must include at least one GENRE
     - Must include at least one THEME
     - Must include at least one MECHANIC/SYSTEM
-    - Total categories should be between 4 and 7
+    - Total categories should be between 4 and 8
     - List most important categories first
 
     GENRES: {genres_string}
@@ -86,7 +91,6 @@ class OpenAIService:
     Example responses:
     - For D&D 5E: Fantasy; High-Fantasy; Class-based; Character Customization; Tactical Combat; Team-Based
     - For Blades in the Dark: Dark Fantasy; Gothic; Dark; Heist; Narrative-Driven; Team-Based
-    - For Mothership: Science Fiction; Horror; Psychological; Survival; Resource Management;
 
     Important: Select only the categories that truly define the game's core identity, ordered by importance."""
 
@@ -97,15 +101,27 @@ class OpenAIService:
             ],
             max_tokens=50
         )
-        return response.choices[0].message.content.strip()
+        
+        # Get response and split into categories
+        categories = response.choices[0].message.content.strip().split('; ')
+        
+        # Filter out any categories that aren't in our defined sets
+        valid_categories = [
+            cat for cat in categories 
+            if cat in self.genres 
+            or cat in self.themes 
+            or cat in self.mechanics
+        ]
+        
+        # Join back into semicolon-separated string
+        return '; '.join(valid_categories)
 
-    @staticmethod
     @retry_with_backoff
-    def get_potential_categories(game_name):
+    def get_potential_categories(self, game_name):
         prompt = f"""Analyze the tabletop roleplaying game '{game_name}' and suggest 2-3 new potential categories or tags that aren't in the following list. 
     These should be unique, specific categories that could be useful for categorizing this and similar games. Format your response as a semicolon-separated list.
 
-    Existing categories: {'; '.join(CATEGORIES)}"""
+    Existing categories: {'; '.join(self.categories)}"""
 
         response = openai_client.chat.completions.create(
             model=GPT_MODEL,
@@ -225,7 +241,7 @@ class OpenAIService:
         Summary:
         """
         response = openai_client.chat.completions.create(
-            model='gpt-4',
+            model=GPT_MODEL,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=3000,
             temperature=0.0

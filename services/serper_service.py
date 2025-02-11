@@ -37,7 +37,7 @@ class SerperService:
             # print("serper data", data)
             # Assuming the first result is the most relevant
             if data and "organic" in data and len(data["organic"]) > 0:
-                return data["organic"][0]["link"]
+                return data["organic"][0]["link"] + "?affiliate_id=1659151"
             
             self.logger.warning(f"No results found for {title}")
             return None

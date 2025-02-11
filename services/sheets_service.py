@@ -1,5 +1,6 @@
 import gspread
 import logging
+import time
 from typing import List, Dict, Optional, Any, Tuple
 from config.constants import SERVICE_ACCOUNT_FILE
 from utils.decorators import retry_with_backoff
@@ -11,6 +12,10 @@ logger = logging.getLogger(__name__)
 class SheetsService:
     """Service class for handling Google Sheets operations."""
     
+    # Add rate limiting constants
+    MIN_TIME_BETWEEN_REQUESTS = 3.0  # seconds
+    _last_request_time = 0
+
     # Column mappings for the spreadsheet
     COLUMN_MAPPING = {
         'reviewsUrl': 5,     # Column E
@@ -22,9 +27,38 @@ class SheetsService:
         'related_games': [18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
     }
 
-    @staticmethod
-    def get_worksheet():
+    def __init__(self):
+        self._worksheet = None
+        self._categories = None
+        
+    @property
+    def worksheet(self):
+        if not self._worksheet:
+            self._rate_limit()
+            gc = gspread.service_account(filename=SERVICE_ACCOUNT_FILE)
+            self._worksheet = gc.open("TTRPG Directory").sheet1
+        return self._worksheet
+        
+    @property
+    def categories(self):
+        if not self._categories:
+            self._categories = self.get_categories()
+        return self._categories
+
+    @classmethod
+    def _rate_limit(cls):
+        """Ensure minimum time between API requests."""
+        current_time = time.time()
+        time_since_last_request = current_time - cls._last_request_time
+        if time_since_last_request < cls.MIN_TIME_BETWEEN_REQUESTS:
+            sleep_time = cls.MIN_TIME_BETWEEN_REQUESTS - time_since_last_request + 0.1  # Added 0.1s buffer
+            time.sleep(sleep_time)
+        cls._last_request_time = time.time()
+
+    @classmethod
+    def get_worksheet(cls):
         """Get the main worksheet from the TTRPG Directory spreadsheet."""
+        cls._rate_limit()
         gc = gspread.service_account(filename=SERVICE_ACCOUNT_FILE)
         return gc.open("TTRPG Directory").sheet1
 
@@ -37,6 +71,7 @@ class SheetsService:
     def _update_related_games(cls, worksheet, row_index: int, related_data: List[Dict], columns: List[int]):
         """Update related games data in the worksheet."""
         for i, col in enumerate(columns):
+            cls._rate_limit()  # Add rate limiting for each cell update
             game_index = i // 4
             field_index = i % 4
             value = ''
@@ -223,3 +258,36 @@ class SheetsService:
         except:
             return None
         return None
+
+    @classmethod
+    @retry_with_backoff
+    def get_categories(cls):
+        """Get categories from the Categories worksheet."""
+        try:
+            cls._rate_limit()
+            gc = gspread.service_account(filename=SERVICE_ACCOUNT_FILE)
+            spreadsheet = gc.open("TTRPG Directory")
+            categories_sheet = spreadsheet.worksheet("categories")
+            
+            records = categories_sheet.get_all_records()
+            genres = []
+            themes = []
+            mechanics = []
+            
+            for record in records:
+                category_type = record.get('type', '').strip().lower()
+                title = record.get('title', '').strip()
+                
+                if title:
+                    if category_type == 'genres':
+                        genres.append(title)
+                    elif category_type == 'themes':
+                        themes.append(title)
+                    elif category_type == 'mechanics':
+                        mechanics.append(title)
+            
+            # print(f"Found categories - Genres: {genres}, Themes: {themes}, Mechanics: {mechanics}")  # Debug print
+            return genres, themes, mechanics
+        except Exception as e:
+            logger.error(f"Error getting categories: {str(e)}")
+            raise
