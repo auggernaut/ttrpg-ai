@@ -1,6 +1,5 @@
 .env
 ttrpg-games-9a5bfcb02194.json
-ttrpg_env
 __pycache__/
 *.pyc
 venv/

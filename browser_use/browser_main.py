@@ -1,11 +1,25 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from browser_use import Agent, Controller
 from langchain_openai import ChatOpenAI
-from browser_use import Agent
+from services.sheets_service import SheetsService
 import asyncio
 from dotenv import load_dotenv
-from services.sheets_service import SheetsService
-import json
+import csv
 
 load_dotenv()
+
+# Initialize controller
+controller = Controller()
+
+@controller.action('Save Reddit category URLs to file')
+def save_category_url(category: str, url: str):
+    with open('browser_use/reddit_categories.csv', 'a', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow([category, url])
+    return f'Saved URL for {category}'
 
 async def main():
     # Initialize services
@@ -16,12 +30,12 @@ async def main():
     all_categories = genres + themes + mechanics
     
     # Define start and end categories
-    start_category = "Space Opera"
-    end_category = "Sword-and-Sorcery"
+    start_category = "Aliens"
+    end_category = "Card-Based / Diceless"
     
     # Get slice of categories between start and end (inclusive)
     start_index = all_categories.index(start_category)
-    end_index = all_categories.index(end_category) + 1  # +1 to include the end category
+    end_index = all_categories.index(end_category) + 1
     categories_to_process = all_categories[start_index:end_index]
     
     # Create a structured task with filtered categories
@@ -39,58 +53,25 @@ async def main():
     2. For each category in the list:
         - Search for "[category] ttrpg"
         - Find the first post that has comments enabled
-        - Save the post URL
+        - Use the 'Save Reddit category URLs to file' action to save the category and URL
         - Move to the next category
-    3. Add the Category/URL for each category to the bottom of this sheet:
-        - https://docs.google.com/spreadsheets/d/1G5iyUAnShu48djR8cf7B7CX40NzEWQLrv5HreJM-P8o/edit?gid=0#gid=0
-    
+
     ### Important Notes:
     - Only collect posts that are not Archived ("Archived post. New comments cannot be posted and votes cannot be cast.")
-    - Save each URL with its corresponding category, in csv format
     - If a category search yields no results, note it and continue to the next
-    
-    ### Expected Output:
-    A collection of URLs mapped to their categories, in csv format
     """
     
-    # Initialize agent with the comprehensive task
+    # Initialize agent with the comprehensive task and controller
     agent = Agent(
         llm=ChatOpenAI(model="gpt-4o"),
-        task=task
+        task=task,
+        controller=controller
     )
     
     # Run the agent
     try:
-        result = await agent.run()
-        
-        # Process and save results
-        results = {}
-        if result:
-            # Parse the result text into a dictionary
-            # Expected format: "Category, URL: url\nCategory, URL: url"
-            for line in str(result).strip().split('\n'):
-                if ',' in line and 'URL:' in line:
-                    category, url_part = line.split(', URL:', 1)
-                    results[category.strip()] = url_part.strip()
-                    print(f"Found URL for {category}: {url_part.strip()}")
-        
-        # Convert results to proper JSON format
-        json_output = {
-            "categories": [
-                {
-                    "name": category,
-                    "url": url
-                }
-                for category, url in results.items()
-            ]
-        }
-        
-        # Save results to file
-        with open('reddit_categories.json', 'w') as f:
-            json.dump(json_output, f, indent=4)
-        
-        print(f"Processed {len(results)} categories. Results saved to reddit_categories.json")
-    
+        await agent.run(max_steps=1000)
+        print("Processing complete. Results saved to reddit_categories.csv")
     except Exception as e:
         print(f"Error during execution: {e}")
 
