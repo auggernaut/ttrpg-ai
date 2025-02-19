@@ -7,6 +7,7 @@ from services.openai_service import OpenAIService
 from services.sheets_service import SheetsService
 from services.scraper_service import ScraperService
 from services.serper_service import SerperService
+from services.research_service import ResearchService
 
 # Set up logging
 logging.basicConfig(format='%(message)s', level=logging.INFO)
@@ -25,6 +26,7 @@ class TTRPGBlurbWriter:
         self.openai_service = OpenAIService()
         self.sheets_service = SheetsService()
         self.serper_service = SerperService()
+        self.research_service = ResearchService()
 
     def generate_game_content(
         self, 
@@ -53,7 +55,27 @@ class TTRPGBlurbWriter:
             
             if not column or column == 'full_text':
                 logger.info("Getting full text description...")
-                full_text = self.openai_service.get_ttrpg_full_text(title, notes)
+                research_prompt = f"""Create a detailed HTML article about the tabletop roleplaying game '{title}' that covers:
+                - Theme and setting
+                - Core mechanics and rules
+                - What makes it unique
+                - Target audience and player experience
+                
+                {"Additional context: " + notes if notes else ''}
+                
+                Format requirements:
+                - Do not include any report intro or outro, start with the first section and end with the last section
+                - Start headings with <h2> (no h1 tags)
+                - Include specific examples and details
+                - Keep the word count under 500 words"""
+                
+                # Strip any h1 tags from the beginning of the research output
+                full_text = self.research_service.get_research(
+                    game_title=title,
+                    prompt=research_prompt
+                )
+                if full_text and full_text.strip().startswith("<h1>"):
+                    full_text = full_text[full_text.find("</h1>") + 5:].strip()
             
             if not column or column == 'category':
                 logger.info("Getting category...")
@@ -178,10 +200,13 @@ Examples:
   python main.py "Dungeons & Dragons"
   
   # Update only the summary for a game
-  python main.py "Pathfinder" -c summary
+  python main.py "Pathfinder" --column summary
   
   # Update related games for all entries
   python main.py --update-all -c related_games
+
+    # Update all entries starting from row 10
+  python main.py --update-all --start-row 10
   
 Column Descriptions:
   summary              - A 2-3 sentence overview of the game
@@ -210,6 +235,12 @@ Column Descriptions:
         action='store_true',
         help='Update all games in the spreadsheet instead of a single game'
     )
+    parser.add_argument(
+        '--start-row',
+        type=int,
+        default=2,
+        help='Row number to start updating from when using --update-all (default: 2)'
+    )
     
     args = parser.parse_args()
 
@@ -218,7 +249,7 @@ Column Descriptions:
         
         if args.update_all:
             worksheet = writer.sheets_service.get_worksheet()
-            titles = [t for t in worksheet.col_values(1)[1:] if t.strip()]
+            titles = [t for t in worksheet.col_values(1)[args.start_row-1:] if t.strip()]
             writer.process_games(titles, args.column)
         else:
             ttrpg_name = ' '.join(args.game_name) if args.game_name else input("Enter the name of the TTRPG: ").strip()
