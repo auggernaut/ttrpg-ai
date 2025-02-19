@@ -56,6 +56,8 @@ export PYTHONPATH="${PYTHONPATH}:/path/to/ttrpg-ai"
 python main.py -h
 ```
 
+** make sure you're running the Open Deep Research app in a separate terminal **
+
 
 ## Related Links
 
