@@ -3,3 +3,4 @@ ttrpg-games-9a5bfcb02194.json
 __pycache__/
 *.pyc
 venv/
+.venv/
