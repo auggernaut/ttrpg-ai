@@ -1,7 +1,7 @@
-openai==1.54.4
+openai
 gspread
 python-dotenv
-crawl4ai
 playwright
 langchain-openai
 selenium
+beautifulsoup4
